@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Un regalo especial para ti</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#000;display:flex;flex-direction:column;justify-content:center;align-items:center;min-height:100vh;width:100vw;font-family:'Press Start 2P',monospace;overflow:hidden;touch-action:none;}
+#gameWrapper{position:relative;width:640px;transform-origin:top center;}
+canvas{display:block;image-rendering:pixelated;image-rendering:crisp-edges;}
+#hud{position:absolute;top:0;left:0;right:0;background:rgba(0,0,0,0.9);padding:5px 10px;display:flex;gap:8px;align-items:center;border-bottom:2px solid #ff6b9d;font-size:6px;color:#fff;z-index:20;height:32px;}
+#hud span{color:#ff6b9d;font-size:10px;}
+.inv-item{background:#1a1a2e;border:2px solid #333;border-radius:3px;padding:3px 7px;font-size:6px;color:#555;transition:all 0.3s;white-space:nowrap;}
+.inv-item.unlocked{border-color:#ffd700;color:#ffd700;animation:itemPop 0.5s ease;}
+@keyframes itemPop{0%{transform:scale(0.3) rotate(-10deg);}60%{transform:scale(1.3) rotate(3deg);}100%{transform:scale(1) rotate(0);}}
+#canvasArea{position:relative;border:3px solid #fff;overflow:hidden;}
+#gameCanvas{border:none;}
+#sceneTitle{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:25;pointer-events:none;opacity:0;transition:opacity 0.5s;}
+#sceneTitleText{color:#fff;font-size:11px;text-align:center;line-height:2;text-shadow:0 0 20px #ff6b9d;}
+#transFlash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:80;transition:opacity 0.15s;}
+#itemNotif{position:absolute;top:40px;right:10px;background:#000;border:2px solid #ffd700;padding:6px 10px;font-size:6px;color:#ffd700;z-index:40;opacity:0;transition:opacity 0.3s;pointer-events:none;text-align:center;line-height:1.8;}
+#dialogBox{position:absolute;bottom:0;left:0;right:0;background:#000;border-top:3px solid #fff;padding:10px 14px 8px;min-height:88px;z-index:30;display:none;}
+#dialogName{color:#ff6b9d;font-size:7px;margin-bottom:5px;}
+#dialogText{color:#fff;font-size:7px;line-height:1.7;white-space:pre-wrap;min-height:40px;}
+#dialogContinue{position:absolute;bottom:8px;right:12px;color:#ff6b9d;font-size:9px;animation:blink 0.8s infinite;display:none;}
+@keyframes blink{50%{opacity:0;}}
+#puzzleOverlay{position:absolute;inset:0;background:rgba(0,0,0,0.93);z-index:50;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;}
+#puzzleOverlay h2{color:#ff6b9d;font-size:8px;text-align:center;line-height:2;}
+#puzzleOverlay p{color:#aaa;font-size:6px;text-align:center;}
+.puzzle-hint{background:#1a1a2e;border:1px solid #333;padding:6px 12px;font-size:6px;color:#aaa;text-align:center;}
+#dateInput{background:#0a0a1e;border:2px solid #ff6b9d;color:#fff;font-family:'Press Start 2P',monospace;font-size:12px;padding:8px 14px;text-align:center;width:190px;letter-spacing:3px;outline:none;}
+#dateInput:focus{border-color:#ffd700;box-shadow:0 0 10px #ffd70066;}
+#puzzleBtn{background:#ff6b9d;color:#000;border:none;font-family:'Press Start 2P',monospace;font-size:8px;padding:9px 18px;cursor:pointer;}
+#puzzleBtn:hover{background:#ffd700;}
+#puzzleError{color:#ff4444;font-size:6px;display:none;animation:shake 0.3s ease;}
+#puzzleAttempts{color:#666;font-size:5px;}
+@keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-6px);}75%{transform:translateX(6px);}}
+#romanticRoom{position:absolute;inset:0;background:#000;z-index:90;display:none;overflow:hidden;}
+#roomCanvas{position:absolute;inset:0;}
+#rgbSign{position:absolute;top:55px;left:50%;transform:translateX(-50%);font-family:'Press Start 2P',monospace;font-size:16px;text-align:center;line-height:1.8;animation:rgbCycle 1.8s linear infinite;text-shadow:0 0 20px currentColor,0 0 40px currentColor;white-space:nowrap;z-index:92;opacity:0;transition:opacity 1s;}
+@keyframes rgbCycle{0%{color:#ff0080;}16%{color:#ff6600;}33%{color:#ffd700;}50%{color:#00ff88;}66%{color:#00ccff;}83%{color:#aa00ff;}100%{color:#ff0080;}}
+#npcMessage{position:absolute;bottom:0;left:0;right:0;background:#000;border-top:3px solid #ffd700;padding:12px 16px 10px;z-index:95;display:none;}
+#npcName{color:#ffd700;font-size:7px;margin-bottom:6px;}
+#npcText{color:#fff;font-size:7px;line-height:1.8;white-space:pre-wrap;min-height:36px;}
+#npcContinue{position:absolute;bottom:10px;right:14px;color:#ffd700;font-size:9px;animation:blink 0.8s infinite;display:none;}
+#finalPopup{position:absolute;inset:0;background:rgba(0,0,0,0.97);z-index:100;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:20px;}
+#finalPopup h2{color:#ff6b9d;font-size:9px;line-height:2;}
+#finalPopup p{color:#ccc;font-size:6px;line-height:2;max-width:480px;}
+.popup-btn{background:#ff6b9d;color:#000;border:none;font-family:'Press Start 2P',monospace;font-size:8px;padding:10px 20px;cursor:pointer;margin:4px;transition:background 0.2s,transform 0.1s;}
+.popup-btn:hover{background:#ffd700;transform:scale(1.05);}
+.popup-btn.secondary{background:#222;color:#888;border:1px solid #444;}
+.popup-btn.secondary:hover{background:#333;color:#fff;}
+#titleScreen{position:absolute;inset:0;background:#000;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;}
+#titleScreen h1{color:#ff6b9d;font-size:13px;line-height:2;animation:titleGlow 2s ease-in-out infinite alternate;}
+@keyframes titleGlow{from{text-shadow:0 0 10px #ff6b9d;}to{text-shadow:0 0 30px #ff6b9d,0 0 70px #ff6b9d;}}
+.subtitle{color:#777;font-size:6px;line-height:2;}
+#startBtn{background:none;border:2px solid #ff6b9d;color:#ff6b9d;font-family:'Press Start 2P',monospace;font-size:9px;padding:10px 22px;cursor:pointer;animation:blink 1.2s infinite;}
+#titleHearts{font-size:22px;letter-spacing:10px;animation:floatH 3s ease-in-out infinite;}
+@keyframes floatH{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+#creditsScreen{position:absolute;inset:0;background:#000;z-index:300;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:30px;}
+#creditsScreen h2{color:#ff6b9d;font-size:10px;line-height:2;}
+#creditsScreen p{color:#aaa;font-size:6px;line-height:2.2;}
+.credits-big{font-size:28px;animation:floatH 3s ease-in-out infinite;}
+#playAgainBtn{background:#ff6b9d;color:#000;border:none;font-family:'Press Start 2P',monospace;font-size:7px;padding:8px 16px;cursor:pointer;margin-top:10px;}
+#mobileControls{display:none;position:absolute;bottom:0;left:0;right:0;height:130px;background:rgba(0,0,0,0.7);z-index:15;justify-content:space-between;align-items:center;padding:10px 20px;}
+#dpad{position:relative;width:100px;height:100px;}
+.dpad-btn{position:absolute;width:32px;height:32px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;user-select:none;-webkit-user-select:none;transition:background 0.1s;}
+.dpad-btn:active,.dpad-btn.pressed{background:rgba(255,107,157,0.5);}
+#dpad-up{top:0;left:34px;}#dpad-down{bottom:0;left:34px;}#dpad-left{left:0;top:34px;}#dpad-right{right:0;top:34px;}
+#dpad-center{width:24px;height:24px;background:rgba(255,255,255,0.08);border-radius:50%;top:38px;left:38px;border:none;}
+#actionBtn{width:70px;height:70px;background:rgba(255,107,157,0.3);border:2px solid #ff6b9d;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Press Start 2P',monospace;font-size:7px;color:#ff6b9d;cursor:pointer;user-select:none;transition:background 0.1s;text-align:center;line-height:1.6;}
+#actionBtn:active{background:rgba(255,107,157,0.7);}
+</style>
+</head>
+<body>
+<div id="gameWrapper">
+  <div id="titleScreen">
+    <div id="titleHearts">💕💖💕</div>
+    <h1>UN REGALO<br>PARA TI</h1>
+    <p class="subtitle">una pequeña aventura hecha con amor</p>
+    <button id="startBtn">▶ COMENZAR</button>
+    <p class="subtitle" style="color:#444;margin-top:8px;">↑↓←→ mover &nbsp;·&nbsp; Z / Espacio = interactuar</p>
+  </div>
+  <div id="hud">
+    <span>🎒</span>
+    <div class="inv-item" id="inv0">📅 Fecha</div>
+    <div class="inv-item" id="inv1">🎫 Boleto</div>
+    <div class="inv-item" id="inv2">🗝️ Llave</div>
+  </div>
+  <div id="canvasArea">
+    <canvas id="gameCanvas" width="640" height="390"></canvas>
+    <div id="sceneTitle"><div id="sceneTitleText"></div></div>
+    <div id="transFlash"></div>
+    <div id="itemNotif"></div>
+  </div>
+  <div id="dialogBox">
+    <div id="dialogName"></div>
+    <div id="dialogText"></div>
+    <div id="dialogContinue">▼</div>
+  </div>
+  <div id="mobileControls">
+    <div id="dpad">
+      <div class="dpad-btn" id="dpad-up">↑</div>
+      <div class="dpad-btn" id="dpad-left">←</div>
+      <div class="dpad-btn dpad-center" id="dpad-center"></div>
+      <div class="dpad-btn" id="dpad-right">→</div>
+      <div class="dpad-btn" id="dpad-down">↓</div>
+    </div>
+    <div id="actionBtn">Z<br>ACCIÓN</div>
+  </div>
+  <div id="puzzleOverlay">
+    <h2>📅 CALENDARIO MISTERIOSO</h2>
+    <p>¿Recuerdas la fecha en que<br>nos hablamos por primera vez?</p>
+    <div class="puzzle-hint">Escribe en formato DD/MM/AAAA</div>
+    <input id="dateInput" type="text" placeholder="DD/MM/AAAA" maxlength="10" autocomplete="off">
+    <div id="puzzleError">❌ Esa no es la fecha... piénsalo bien 💭</div>
+    <div id="puzzleAttempts"></div>
+    <button id="puzzleBtn">✓ CONFIRMAR</button>
+  </div>
+  <div id="romanticRoom">
+    <canvas id="roomCanvas" width="640" height="480"></canvas>
+    <div id="rgbSign">✨ 8 MESES ✨<br>💖</div>
+    <div id="npcMessage">
+      <div id="npcName">🌙 Mau</div>
+      <div id="npcText"></div>
+      <div id="npcContinue">▼</div>
+    </div>
+  </div>
+  <div id="finalPopup">
+    <div style="font-size:26px;animation:floatH 2s ease-in-out infinite;">💌</div>
+    <h2>¿QUIERES DESBLOQUEAR<br>TU SEGUNDO REGALO?</h2>
+    <p>Hay algo más esperándote...<br>algo en el mundo real. 💕</p>
+    <div>
+      <!-- ════════════════════════════════════════════
+           CAMBIA ESTA URL por tu enlace real de cita
+           (Calendly, Google Forms, WhatsApp, etc.)
+           ════════════════════════════════════════════ -->
+      <button class="popup-btn" onclick="window.open('regalo.html','_blank')">💕 SÍ, QUIERO</button>
+      <button class="popup-btn secondary" onclick="showCredits()">ver créditos</button>
+    </div>
+  </div>
+  <div id="creditsScreen">
+    <div class="credits-big">💖</div>
+    <h2>FIN</h2>
+    <p>Este juego fue hecho con amor<br>para alguien muy especial.<br><br>Gracias por jugar hasta el final.<br>Te quiero muchísimo. 🌙</p>
+    <button id="playAgainBtn">↺ JUGAR DE NUEVO</button>
+  </div>
+</div>
+<!-- MÚSICA: pon tu archivo MP3 en la misma carpeta y cambia el src -->
+<audio id="bgMusic" loop>
+  <source src="cancion.mp3" type="audio/mpeg">
+</audio>
+<!-- Coloca tu cancion.mp3 en la misma carpeta que este archivo -->
+<script>
+'use strict';
+// ═══════════════════════════════════════════════════
+// CONFIGURACIÓN — edita antes de subir a GitHub
+// ═══════════════════════════════════════════════════
+const CFG = {
+  firstTalkDate: "07/09/2025",   // Fecha primer chat DD/MM/AAAA
+  ticketDate:    "24/05/2026",   // Fecha del boleto
+  herName:       "Amor",
+  hisName:       "Mau",
+  finalMsg: [
+    "Hola, amor... 💕",
+    "Hoy son 8 meses\nde tenerte en mi vida.",
+    "Feliz mes. ❤",
+    "Gracias por estar aquí.",
+    "Te amo...",
+    "Y espero estar contigo\nhasta el día que me muera,\ny mil años más."
+  ]
+};
+
+// ═══════════════════════════════════════════════════
+// ESTADO
+// ═══════════════════════════════════════════════════
+const S = {
+  scene:0, px:320, py:270, facing:'down', moving:false,
+  inv:[false,false,false],
+  dialog:false, puzzleOpen:false, transitioning:false,
+  solved:false, ticketGot:false, keyGot:false, roomRevealed:false,
+  npcStep:0, ticks:0, wFrame:0, wTimer:0,
+  keys:{}, attempts:0,
+  _fullText:'', _dialogCb:null, _twInt:null, _npcTw:null,
+};
+
+// ═══════════════════════════════════════════════════
+// DOM
+// ═══════════════════════════════════════════════════
+const canvas  = document.getElementById('gameCanvas');
+const ctx     = canvas.getContext('2d');
+const $ = id => document.getElementById(id);
+const dlgBox  = $('dialogBox'), dlgName = $('dialogName');
+const dlgText = $('dialogText'), dlgCont = $('dialogContinue');
+const flash   = $('transFlash');
+
+// ═══════════════════════════════════════════════════
+// HELPERS DE DIBUJO
+// ═══════════════════════════════════════════════════
+const R = (x,y,w,h,c,c2=ctx) => { c2.fillStyle=c; c2.fillRect(x,y,w,h); };
+const glow = (x,y,col,rad,c2=ctx) => {
+  const g=c2.createRadialGradient(x,y,0,x,y,rad);
+  g.addColorStop(0,col+'aa'); g.addColorStop(1,'transparent');
+  c2.fillStyle=g; c2.fillRect(x-rad,y-rad,rad*2,rad*2);
+};
+
+// ── ELLA: tez clara, cabello largo castaño oscuro, falda rosa ──────────────
+// sprite de 12×28 píxeles lógicos, escalado por `sc`
+function drawChar(cx, cy, _skin, _hair, _longH, facing, frame, sc, c2) {
+  if(!c2) c2=ctx; if(!sc) sc=2;
+  // ancla: cx,cy = centro inferior del sprite
+  const X=cx-6*sc, Y=cy-28*sc;
+  const p=(px,py,pw,ph,col)=>{ c2.fillStyle=col; c2.fillRect(X+px*sc,Y+py*sc,pw*sc,ph*sc); };
+
+  // sombra suave
+  c2.globalAlpha=0.18; p(-1,27,14,3,'#000'); c2.globalAlpha=1;
+
+  // ── zapatos (marrón rojizo) ──
+  p(0,25,4,3,'#6b2a1e'); p(6,25,4,3,'#6b2a1e');
+  // detalle zapato
+  p(0,25,2,1,'#8b3a2e'); p(6,25,2,1,'#8b3a2e');
+
+  // ── medias blancas ──
+  p(1,22,3,4,'#f0f0ee'); p(6,22,3,4,'#f0f0ee');
+  p(1,22,1,2,'#fff'); p(6,22,1,2,'#fff');
+
+  // ── falda rosa (con volumen) ──
+  p(-1,17,13,6,'#e8558a');   // falda ancha
+  p(0,16,10,4,'#d44478');    // cintura más oscura
+  p(1,20,9,3,'#ef6699');     // dobladillo más claro
+  p(-1,17,2,5,'#c43368');    // sombra izq
+  p(10,17,2,5,'#c43368');    // sombra der
+
+  // ── blusita blanca con detalles ──
+  p(1,10,9,7,'#f8f8f8');
+  p(1,10,1,7,'#e0e0e0');    // sombra izq blusa
+  p(9,10,1,7,'#e0e0e0');    // sombra der blusa
+  p(3,10,5,1,'#fff');        // cuello borde
+  // detallito lazo/broche
+  p(4,12,3,2,'#e8558a');
+
+  // ── cuello ──
+  p(3,8,5,3,'#f5c8a0');
+
+  // ── cabeza (tez clara con rubor) ──
+  p(1,1,9,8,'#f5c8a0');
+  p(1,1,1,8,'#e8b890');   // sombra izq cara
+  p(9,1,1,8,'#e8b890');   // sombra der cara
+  p(2,7,7,2,'#f8d0b0');   // mentón más claro
+  // ruborcitos en las mejillas
+  p(2,5,2,1,'#ffaabb');
+  p(7,5,2,1,'#ffaabb');
+
+  // ── ojos ──
+  if(facing!=='up'){
+    // ojos grandes pixelados
+    p(2,3,2,2,'#2a1a0a');   // ojo izq
+    p(7,3,2,2,'#2a1a0a');   // ojo der
+    p(2,3,1,1,'#fff');       // reflejo izq
+    p(7,3,1,1,'#fff');       // reflejo der
+    p(3,4,1,1,'#5a3a2a');   // iris izq
+    p(8,4,1,1,'#5a3a2a');   // iris der
+    // pestañas
+    p(2,2,1,1,'#1a0a00');
+    p(4,2,1,1,'#1a0a00');
+    p(7,2,1,1,'#1a0a00');
+    p(9,2,1,1,'#1a0a00');
+    // boca pequeña
+    p(4,6,3,1,'#c06060');
+    p(5,6,1,1,'#ff8888');
+  }
+
+  // ── cabello largo castaño oscuro ──
+  const hc='#2a1208', hc2='#3d1e0a', hc3='#1a0a04';
+  // corona / parte superior
+  p(1,0,9,2,hc2);
+  p(0,1,11,3,hc);
+  // flequillo
+  p(1,2,3,2,hc2);
+  p(4,1,1,3,hc3);
+  p(6,2,3,2,hc2);
+  // pelos largos izquierda
+  p(-1,1,2,20,hc);
+  p(-1,4,1,16,hc3);
+  p(0,14,2,10,hc2);
+  // pelos largos derecha
+  p(10,1,2,20,hc);
+  p(11,4,1,16,hc3);
+  p(9,14,2,10,hc2);
+  // parte baja del cabello (cola)
+  p(0,20,2,6,hc);
+  p(9,20,2,6,hc);
+  p(1,23,2,4,hc2);
+  p(8,23,2,4,hc2);
+
+  // ── piernas con animación caminar ──
+  if(frame===1){
+    // pierna derecha adelante, izquierda atrás
+    p(1,17,3,9,'#d44478');   // pierna izq atrás (falda)
+    p(6,17,4,9,'#e8558a');   // pierna der adelante (falda)
+    p(1,22,3,4,'#f0f0ee');   // media izq
+    p(6,22,4,4,'#f0f0ee');   // media der
+    p(0,25,4,3,'#6b2a1e');   // zapato izq
+    p(6,25,4,3,'#6b2a1e');   // zapato der
+  }
+}
+
+// ── ÉL (Mau): tez morena, cabello negro largo estilo Wolfwood ───────────────
+// sprite de 12×30 píxeles lógicos, escalado por `sc`
+function drawHisNPC(cx, cy, c2, scOverride) {
+  if(!c2) c2=ctx;
+  const sc = scOverride||2;
+  const X=cx-6*sc, Y=cy-30*sc;
+  const p=(px,py,pw,ph,col)=>{ c2.fillStyle=col; c2.fillRect(X+px*sc,Y+py*sc,pw*sc,ph*sc); };
+
+  // sombra
+  c2.globalAlpha=0.2; p(-1,29,14,3,'#000'); c2.globalAlpha=1;
+
+  // ── botas negras con detalle ──
+  p(0,26,4,4,'#1a1212');
+  p(6,26,4,4,'#1a1212');
+  p(0,26,2,1,'#2a2020'); // brillo bota izq
+  p(6,26,2,1,'#2a2020'); // brillo bota der
+  // vuelta de la bota
+  p(0,25,4,2,'#222');
+  p(6,25,4,2,'#222');
+
+  // ── pantalón negro ──
+  p(1,18,4,8,'#111118');
+  p(6,18,4,8,'#111118');
+  p(2,18,2,8,'#1a1a22'); // highlight pantalón
+
+  // ── cinturón ──
+  p(1,17,9,2,'#1a1a1a');
+  p(4,17,3,2,'#333');     // hebilla
+  p(5,17,1,2,'#888');     // metal hebilla
+
+  // ── camiseta negra / ropa oscura ──
+  p(0,9,11,9,'#12121e');
+  p(0,9,1,9,'#0a0a16');   // sombra izq
+  p(10,9,1,9,'#0a0a16');  // sombra der
+  p(1,9,9,2,'#1e1e2e');   // hombros
+  // detalle cuello camiseta (v-neck)
+  p(4,10,3,3,'#0a0a16');
+  p(5,10,1,4,'#0a0a16');
+
+  // ── cuello / piel ──
+  p(3,7,5,3,'#7a4030');
+
+  // ── cabeza tez morena oscura ──
+  p(1,0,9,8,'#7a4030');
+  p(1,0,1,8,'#643020');   // sombra izq
+  p(9,0,1,8,'#643020');   // sombra der
+  p(2,6,7,2,'#8a5040');   // mentón más claro
+
+  // ── ojos expresivos ──
+  p(2,2,2,2,'#0a0808');   // ojo izq
+  p(7,2,2,2,'#0a0808');   // ojo der
+  p(2,2,1,1,'#fff');       // reflejo izq
+  p(7,2,1,1,'#fff');       // reflejo der
+  p(3,3,1,1,'#3a2818');   // iris izq
+  p(8,3,1,1,'#3a2818');   // iris der
+  // cejas definidas (rasgo de Wolfwood)
+  p(2,1,3,1,'#0a0606');
+  p(7,1,2,1,'#0a0606');
+  // boca
+  p(4,5,3,1,'#5a2818');
+  p(5,5,1,1,'#7a3828');
+
+  // ── cabello negro largo Wolfwood ──
+  // muy oscuro, lacio, largo hasta los hombros
+  const hb='#0a0808', hb2='#151010', hb3='#050404';
+  // top/corona
+  p(1,-1,9,3,hb2);
+  p(0,0,11,4,hb);
+  // flequillo asimétrico (cae un poco hacia el lado)
+  p(1,3,7,2,hb);
+  p(1,4,3,2,hb2);   // mechón izq sobre frente
+  p(7,3,2,2,hb3);   // mechón der
+  p(3,2,2,1,hb3);   // mechón central
+  // cabello lateral izquierdo muy largo
+  p(-2,0,3,24,hb);
+  p(-2,4,1,20,hb3);
+  p(0,16,2,12,hb2);
+  // cabello lateral derecho muy largo
+  p(10,0,3,24,hb);
+  p(12,4,1,20,hb3);
+  p(9,16,2,12,hb2);
+  // cola trasera / cabello en la espalda
+  p(-1,20,3,10,hb);
+  p(9,20,3,10,hb);
+  p(0,26,2,4,hb2);
+  p(9,26,2,4,hb2);
+  // algunos mechones sueltos
+  p(1,5,1,2,hb3);
+  p(8,5,1,2,hb3);
+
+  // ── corazón flotante animado ──
+  const floatY = Math.sin(S.ticks*0.06)*4;
+  c2.font=`${8*sc/2}px serif`;
+  c2.fillText('💗', X+9*sc, Y - 4 + floatY);
+}
+
+// ═══════════════════════════════════════════════════
+// ELEMENTOS DE ESCENA
+// ═══════════════════════════════════════════════════
+function drawHouse(x,y) {
+  R(x,y+24,60,44,'#3a4558');
+  R(x+2,y+26,56,40,'#2d3748');
+  for(let i=0;i<30;i++) R(x+i,y+24-Math.floor(i*0.8),60-i*2,2,'#991b1b');
+  R(x+21,y+44,18,24,'#6b3a1e');
+  R(x+5,y+30,14,12,'#1e3a5f');
+  R(x+41,y+30,14,12,'#1e3a5f');
+  R(x+6,y+31,12,10,'#87ceeb33');
+  R(x+42,y+31,12,10,'#87ceeb33');
+}
+function drawTree(x,y,dark) {
+  const t=dark?'#0a0515':'#6b3a1e', g=dark?'#0d0520':'#1a5c0a', g2=dark?'#080312':'#1d6b0d';
+  R(x+10,y+30,8,24,t);
+  R(x,y,28,20,g); R(x+4,y-14,20,18,g2); R(x+8,y-26,12,16,g);
+}
+function drawLantern(x,y) {
+  R(x+4,y,4,8,'#8b5e3c');
+  R(x,y+8,12,14,'#1a1a2e');
+  R(x+1,y+9,10,12,'#ffd70055');
+  glow(x+6,y+15,'#ffd700',25);
+}
+function drawBench(x,y) {
+  R(x,y,60,8,'#8b5e3c'); R(x+5,y+8,6,18,'#6b4422'); R(x+49,y+8,6,18,'#6b4422');
+}
+function drawBus(x,y) {
+  R(x,y+10,100,50,'#1d4ed8');
+  R(x+5,y,90,14,'#1e40af');
+  for(let i=0;i<4;i++) R(x+8+i*22,y+14,16,14,'#bfdbfe33');
+  R(x+10,y+57,18,10,'#111'); R(x+72,y+57,18,10,'#111');
+  R(x+2,y+28,6,6,'#fde68a'); R(x+92,y+28,6,6,'#fde68a');
+}
+function drawPulse(x, y, emoji) {
+  const p=Math.sin(S.ticks*0.08)*4;
+  ctx.shadowColor='#ffd700'; ctx.shadowBlur=12+p;
+  ctx.font='22px serif'; ctx.fillText(emoji,x-11,y+8);
+  ctx.shadowBlur=0;
+}
+function drawHint(x, y, txt) {
+  if(Math.abs(S.px-x)<55&&Math.abs(S.py-y)<55){
+    ctx.fillStyle='rgba(0,0,0,0.75)'; ctx.fillRect(x-44,y-28,88,14);
+    ctx.fillStyle='#ffd700'; ctx.font='5px "Press Start 2P",monospace';
+    ctx.fillText(txt,x-42,y-18);
+  }
+}
+function exitArrow(x,y,sym) {
+  ctx.fillStyle='rgba(255,215,0,0.6)'; ctx.font='13px "Press Start 2P",monospace';
+  ctx.fillText(sym,x-6,y+5);
+}
+function secretDoor(x,y) {
+  const p=Math.sin(S.ticks*0.1)*8;
+  ctx.shadowColor='#ff6b9d'; ctx.shadowBlur=20+p;
+  R(x,y,44,60,'#2a0a22'); R(x+3,y+3,38,54,'#4a0a3a');
+  ctx.font='20px serif'; ctx.fillText('💗',x+10,y+35);
+  ctx.shadowBlur=0;
+  if(Math.abs(S.px-x)<55&&Math.abs(S.py-y)<55){
+    ctx.fillStyle='rgba(0,0,0,0.75)'; ctx.fillRect(x-22,y-20,90,14);
+    ctx.fillStyle='#ff6b9d'; ctx.font='5px "Press Start 2P",monospace';
+    ctx.fillText('[Z] Abrir puerta secreta',x-20,y-10);
+  }
+}
+function drawChest(x,y) {
+  R(x,y,44,32,'#5c3a00'); R(x+2,y+2,40,14,'#7a4e00');
+  R(x+18,y+10,8,7,'#b8860b');
+  ctx.shadowColor='#ffd700'; ctx.shadowBlur=14+Math.sin(S.ticks*0.08)*4;
+  if(Math.abs(S.px-x)<60&&Math.abs(S.py-y)<60){
+    ctx.fillStyle='rgba(0,0,0,0.75)'; ctx.fillRect(x-10,y-20,68,14);
+    ctx.fillStyle='#ffd700'; ctx.font='5px "Press Start 2P",monospace';
+    ctx.fillText('[Z] Interactuar',x-8,y-10);
+  }
+  ctx.shadowBlur=0;
+}
+function speechBubble(x,y,txt) {
+  const lines=txt.split('\n'), w=74, h=lines.length*12+8;
+  ctx.fillStyle='rgba(0,0,0,0.8)'; ctx.fillRect(x-w/2,y-h,w,h);
+  ctx.strokeStyle='#fff'; ctx.lineWidth=1; ctx.strokeRect(x-w/2,y-h,w,h);
+  ctx.fillStyle='#fff'; ctx.font='5px monospace';
+  lines.forEach((l,i)=>ctx.fillText(l,x-w/2+4,y-h+10+i*12));
+}
+
+// ═══════════════════════════════════════════════════
+// ESCENAS
+// ═══════════════════════════════════════════════════
+function scene0() {
+  // Cielo
+  const sky=ctx.createLinearGradient(0,0,0,220);
+  sky.addColorStop(0,'#1e3a8a'); sky.addColorStop(1,'#60a5fa');
+  ctx.fillStyle=sky; ctx.fillRect(0,0,640,220);
+  glow(560,60,'#fde68a',50);
+  ctx.fillStyle='#fde68a'; ctx.beginPath(); ctx.arc(560,60,18,0,Math.PI*2); ctx.fill();
+  for(let tx=0;tx<640;tx+=32) for(let ty=220;ty<390;ty+=32)
+    R(tx,ty,32,32,(tx+ty)%64===0?'#15803d':'#166534');
+  for(let ty=140;ty<390;ty+=20){ R(280,ty,80,18,'#a16207'); R(284,ty+2,72,14,'#ca8a04'); }
+  drawHouse(60,180); drawHouse(480,180);
+  drawTree(30,240); drawTree(150,260); drawTree(490,250); drawTree(570,240);
+  drawLantern(240,210); drawLantern(390,210);
+  R(270,148,100,52,'#6b3a1e'); R(272,150,96,48,'#8b5e3c');
+  ctx.fillStyle='#fff'; ctx.font='5px "Press Start 2P",monospace';
+  ['¿Cuándo fue la','primera vez','que hablamos?'].forEach((l,i)=>ctx.fillText(l,278,163+i*13));
+  R(316,200,8,30,'#6b3a1e');
+  if(!S.solved){ drawPulse(320,148,'📅'); drawHint(320,148,'[Z] Calendario'); }
+  else { ctx.font='20px serif'; ctx.fillText('✅',308,158); }
+  if(S.solved) exitArrow(615,195,'→');
+  drawChar(180,290,'#f5deb3','#8b5e3c',false,'down',0,2);
+  speechBubble(195,262,'Hola! Busca\nel calendario.');
+}
+
+function scene1() {
+  R(0,0,640,390,'#1c1410');
+  R(0,0,640,60,'#2a1f14');
+  for(let tx=0;tx<640;tx+=80) R(tx+16,10,48,44,'#7aaac033');
+  for(let tx=0;tx<640;tx+=32) for(let ty=320;ty<390;ty+=16)
+    R(tx,ty,32,16,(Math.floor(tx/32)+Math.floor(ty/16))%2===0?'#6b3a1e':'#5c3018');
+  R(0,60,640,260,'#241a0e');
+  R(240,68,160,92,'#4a3520'); R(244,72,152,84,'#0a0806');
+  ctx.fillStyle='#ffd700'; ctx.font='6px "Press Start 2P",monospace'; ctx.fillText('HORARIOS',256,90);
+  ctx.fillStyle='#777'; ctx.font='5px monospace';
+  ['06:30 → Pueblo Sur','09:00 → Valle Rosa','12:45 → Ciudad Amor',
+   '15:20 → Tu corazón',`18:00 → ${CFG.ticketDate}`].forEach((t,i)=>ctx.fillText(t,250,105+i*11));
+  drawBus(60,240);
+  drawBench(340,290); drawBench(500,290);
+  drawChar(460,280,'#d4a070','#5a3020',false,'down',0,2);
+  ctx.fillStyle='#666'; ctx.font='5px monospace'; ctx.fillText('...',455,265);
+  if(!S.ticketGot){ drawPulse(420,200,'🎫'); drawHint(420,200,'[Z] Algo en el suelo'); }
+  else { ctx.font='20px serif'; ctx.fillText('✅',408,210); }
+  exitArrow(25,195,'←');
+  if(S.ticketGot) exitArrow(615,195,'→');
+}
+
+function scene2() {
+  const bg=ctx.createLinearGradient(0,0,0,390);
+  bg.addColorStop(0,'#05031a'); bg.addColorStop(1,'#0a0520');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,640,390);
+  glow(550,50,'#e0e8ff',40);
+  ctx.fillStyle='#f0f4ff'; ctx.beginPath(); ctx.arc(550,50,16,0,Math.PI*2); ctx.fill();
+  [[60,25],[130,10],[220,40],[380,18],[510,30],[610,45],
+   [90,75],[330,65],[480,85],[160,95],[420,50],[280,30]].forEach(([sx,sy])=>{
+    const tw=Math.sin(S.ticks*0.06+sx*0.3)*0.4+0.6;
+    ctx.globalAlpha=tw; R(sx,sy,2,2,'#fff'); ctx.globalAlpha=1;
+  });
+  for(let tx=0;tx<640;tx+=32) for(let ty=300;ty<390;ty+=32)
+    R(tx,ty,32,32,(tx+ty)%64===0?'#12082a':'#0e0622');
+  for(let i=0;i<10;i++) R(292+i*7,290,5,100,'#1a0e30');
+  for(let tx=0;tx<640;tx+=90) drawTree(tx,210,true);
+  drawLantern(240,260); drawLantern(370,260);
+  [[100,315],[220,300],[450,310],[560,295]].forEach(([fx,fy])=>{
+    ctx.globalAlpha=Math.sin(S.ticks*0.09+fx)*0.4+0.6;
+    ctx.font='12px serif'; ctx.fillText('✿',fx,fy); ctx.globalAlpha=1;
+  });
+  if(!S.keyGot){
+    ctx.globalAlpha=Math.sin(S.ticks*0.1)*0.4+0.6;
+    drawPulse(500,220,'🗝️'); ctx.globalAlpha=1;
+    drawHint(500,220,'[Z] Llave corazón');
+  }
+  if(S.inv[0]&&S.inv[1]&&S.inv[2]){ secretDoor(310,310); }
+  else {
+    for(let i=0;i<6;i++) R(286+i*14,340,12,14,'#1a0a2a');
+    if(S.inv[0]||S.inv[1]||S.inv[2]){
+      ctx.fillStyle='#ff6b9d66'; ctx.font='5px "Press Start 2P",monospace';
+      ctx.fillText('Necesitas los 3 objetos...',238,338);
+    }
+  }
+  exitArrow(25,195,'←');
+}
+
+function scene3() {
+  if(!S.roomRevealed){
+    R(0,0,640,390,'#020106');
+    [[60,340],[580,340],[320,50]].forEach(([cx,cy])=>{
+      glow(cx,cy,'#ff6600',30);
+      R(cx-2,cy-10,4,10,'#e0c070'); R(cx-3,cy-12,6,4,'#ffcc00');
+    });
+    const g=ctx.createRadialGradient(320,200,5,320,200,130);
+    g.addColorStop(0,'#1a0a2a'); g.addColorStop(1,'transparent');
+    ctx.fillStyle=g; ctx.fillRect(0,0,640,390);
+    drawChest(298,195);
+    ctx.fillStyle='#33113355'; ctx.font='7px "Press Start 2P",monospace';
+    ctx.fillText('???',304,188);
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// SALA ROMÁNTICA — canvas separado con animación
+// ═══════════════════════════════════════════════════
+const hearts=[];
+function spawnHearts(){
+  for(let i=0;i<25;i++) hearts.push({
+    x:Math.random()*640, y:490+Math.random()*40,
+    vx:(Math.random()-0.5)*1.5, vy:-(1+Math.random()*2),
+    size:12+Math.random()*18, opacity:1,
+    e:['💕','💖','💗','💓','❤'][Math.floor(Math.random()*5)]
+  });
+}
+function tickRoom(){
+  const rc=$('roomCanvas').getContext('2d');
+  rc.clearRect(0,0,640,480);
+  const bg=rc.createLinearGradient(0,0,640,480);
+  bg.addColorStop(0,'#18002e'); bg.addColorStop(0.5,'#38004e'); bg.addColorStop(1,'#18002e');
+  rc.fillStyle=bg; rc.fillRect(0,0,640,480);
+  [[50,30],[150,20],[300,45],[500,25],[600,40],[100,80],[400,60],[520,90],[200,15],[450,35]].forEach(([x,y])=>{
+    const t=Math.sin(S.ticks*0.07+x)*0.4+0.6;
+    rc.globalAlpha=t; rc.fillRect(x,y,2,2,'#fff'); rc.fillStyle='#fff'; rc.globalAlpha=1;
+  });
+  // luces de piso
+  for(let i=0;i<8;i++){
+    const gx=40+i*80;
+    const gg=rc.createRadialGradient(gx,330,0,gx,330,32);
+    const cols=['#ff6b9d','#ff99cc','#cc44aa','#ff88bb','#ff6b9d','#ffaad4','#dd22aa','#ffbbdd'];
+    gg.addColorStop(0,cols[i]+'77'); gg.addColorStop(1,'transparent');
+    rc.fillStyle=gg; rc.fillRect(gx-32,298,64,64);
+  }
+  // suelo
+  for(let tx=0;tx<640;tx+=32) rc.fillStyle=(tx/32)%2===0?'#2a0a30':'#200828', rc.fillRect(tx,332,32,148);
+  // globos
+  [[80,190],[160,175],[240,205],[400,185],[480,195],[560,170]].forEach(([bx,by],i)=>{
+    const sw=Math.sin(S.ticks*0.04+i)*9;
+    rc.font='28px serif'; rc.fillText(i%2===0?'🎈':'💕',bx+sw,by);
+    rc.strokeStyle='#88446655'; rc.lineWidth=1;
+    rc.beginPath(); rc.moveTo(bx+14+sw,by+4); rc.lineTo(bx+14,by+85); rc.stroke();
+  });
+  // partículas
+  for(let i=hearts.length-1;i>=0;i--){
+    const h=hearts[i];
+    h.x+=h.vx; h.y+=h.vy; h.opacity-=0.004;
+    if(h.opacity<=0){ hearts.splice(i,1); continue; }
+    rc.globalAlpha=h.opacity; rc.font=h.size+'px serif'; rc.fillText(h.e,h.x,h.y);
+  }
+  rc.globalAlpha=1;
+  // ── Personajes centrados, mismo tamaño, tomados de la mano ──
+  // Ella a la izquierda, Mau a la derecha, manos unidas en el centro
+  const cy = 310; // pie de ambos en y=310
+  const herX = 280, hisX = 360;
+  // Dibujar ella (sc=2, mirando a la derecha)
+  drawChar(herX, cy, '#f5deb3','#2a1a0a', true, 'right', 0, 2, rc);
+  // Dibujar él (sc=2, mirando a la izquierda)
+  drawHisNPC(hisX, cy, rc, 2);
+  // ── Mano tomada: pequeño detalle entre los dos ──
+  // Dibujar manitas entrelazadas en el centro
+  const handX = (herX + hisX) / 2 - 6;
+  const handY = cy - 14*2; // altura de la mano (mitad del cuerpo)
+  // mano de ella (clara)
+  rc.fillStyle='#f5c8a0'; rc.fillRect(handX, handY, 6, 4);
+  // mano de él (morena) encima/junto
+  rc.fillStyle='#7a4030'; rc.fillRect(handX+4, handY, 6, 4);
+  // dedos entrelazados (detalle pixel)
+  rc.fillStyle='#f5c8a0'; rc.fillRect(handX+2, handY-2, 2, 3);
+  rc.fillStyle='#f5c8a0'; rc.fillRect(handX+6, handY-2, 2, 3);
+  rc.fillStyle='#7a4030'; rc.fillRect(handX+4, handY-2, 2, 3);
+  rc.fillStyle='#7a4030'; rc.fillRect(handX+8, handY-2, 2, 3);
+  // pequeño corazón entre ellos
+  const hfloat = Math.sin(S.ticks*0.08)*3;
+  rc.font='12px serif';
+  rc.fillText('💗', handX - 2, handY - 10 + hfloat);
+
+  // ── Flores de lirio alrededor de los personajes ──
+  // Lirios en el suelo, a los lados de la pareja
+  const lilyPositions = [
+    [herX - 60, cy],  [herX - 40, cy + 4],
+    [herX - 80, cy - 2], [herX - 100, cy + 2],
+    [hisX + 36, cy],  [hisX + 56, cy + 4],
+    [hisX + 76, cy - 2], [hisX + 96, cy + 2],
+  ];
+  lilyPositions.forEach(([lx, ly], i) => {
+    const sway = Math.sin(S.ticks * 0.05 + i * 0.8) * 2;
+    // tallo verde
+    rc.fillStyle = '#2d6a1a';
+    rc.fillRect(lx + 3, ly - 18 + sway, 2, 18);
+    // hojas
+    rc.fillStyle = '#3a8a20';
+    rc.fillRect(lx, ly - 12 + sway, 4, 2);
+    rc.fillRect(lx + 4, ly - 8 + sway, 4, 2);
+    // flor de lirio (blanca/rosa)
+    const petalCol = i % 2 === 0 ? '#ffffff' : '#ffccee';
+    const centerCol = i % 2 === 0 ? '#ffd700' : '#ffaa00';
+    rc.fillStyle = petalCol;
+    // pétalos (cruz pixelada)
+    rc.fillRect(lx + 1, ly - 22 + sway, 4, 2); // top
+    rc.fillRect(lx + 1, ly - 18 + sway, 4, 2); // bot
+    rc.fillRect(lx - 1, ly - 20 + sway, 2, 4); // izq
+    rc.fillRect(lx + 5, ly - 20 + sway, 2, 4); // der
+    // pétalos diagonales
+    rc.fillStyle = i % 2 === 0 ? '#ffe0f0' : '#ffddee';
+    rc.fillRect(lx,     ly - 22 + sway, 2, 2);
+    rc.fillRect(lx + 4, ly - 22 + sway, 2, 2);
+    rc.fillRect(lx,     ly - 18 + sway, 2, 2);
+    rc.fillRect(lx + 4, ly - 18 + sway, 2, 2);
+    // centro amarillo
+    rc.fillStyle = centerCol;
+    rc.fillRect(lx + 2, ly - 21 + sway, 2, 3);
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// LANZAR SALA ROMÁNTICA
+// ═══════════════════════════════════════════════════
+function launchRoom(){
+  const room=$('romanticRoom');
+  room.style.display='block'; room.style.opacity='0';
+  spawnHearts();
+  setInterval(()=>{ if(hearts.length<50) spawnHearts(); },4500);
+  let op=0;
+  const fi=setInterval(()=>{
+    op=Math.min(1,op+0.03); room.style.opacity=op;
+    if(op>=1){ clearInterval(fi); revealRoom(); }
+  },40);
+}
+function revealRoom(){
+  $('rgbSign').style.opacity='1';
+  setTimeout(()=>{
+    $('npcMessage').style.display='block';
+    S.npcStep=0; showNpcLine();
+  },1200);
+}
+function showNpcLine(){
+  if(S.npcStep>=CFG.finalMsg.length){
+    $('npcMessage').style.display='none';
+    setTimeout(()=>{ $('finalPopup').style.display='flex'; },700);
+    return;
+  }
+  const txt=$('npcText'), cont=$('npcContinue');
+  txt.textContent=''; cont.style.display='none';
+  $('npcName').textContent='🌙 '+CFG.hisName;
+  const line=CFG.finalMsg[S.npcStep]; let i=0;
+  if(S._npcTw) clearInterval(S._npcTw);
+  S._npcTw=setInterval(()=>{
+    txt.textContent=line.slice(0,++i);
+    if(i>=line.length){ clearInterval(S._npcTw); S._npcTw=null; cont.style.display='block'; }
+  },40);
+}
+$('npcMessage').addEventListener('click',()=>{
+  if(S._npcTw){ clearInterval(S._npcTw); S._npcTw=null;
+    $('npcText').textContent=CFG.finalMsg[S.npcStep];
+    $('npcContinue').style.display='block'; return; }
+  if($('npcContinue').style.display==='block'){ S.npcStep++; showNpcLine(); }
+});
+
+// ═══════════════════════════════════════════════════
+// DIÁLOGO
+// ═══════════════════════════════════════════════════
+function dialog(speaker, text, icon, cb){
+  S.dialog=true; S._dialogCb=cb||null; S._fullText=text;
+  dlgBox.style.display='block';
+  dlgName.textContent=(icon?icon+' ':'')+speaker;
+  dlgText.textContent=''; dlgCont.style.display='none';
+  if(S._twInt) clearInterval(S._twInt);
+  let i=0;
+  S._twInt=setInterval(()=>{
+    dlgText.textContent=text.slice(0,++i);
+    if(i>=text.length){ clearInterval(S._twInt); S._twInt=null; dlgCont.style.display='block'; }
+  },28);
+}
+function advDialog(){
+  if(!S.dialog) return;
+  if(S._twInt){ clearInterval(S._twInt); S._twInt=null; dlgText.textContent=S._fullText; dlgCont.style.display='block'; return; }
+  S.dialog=false; dlgBox.style.display='none';
+  if(S._dialogCb){ const c=S._dialogCb; S._dialogCb=null; c(); }
+}
+[dlgBox,canvas].forEach(el=>el.addEventListener('click',()=>{ if(S.dialog) advDialog(); else checkInteract(); }));
+
+// ═══════════════════════════════════════════════════
+// INTERACCIONES
+// ═══════════════════════════════════════════════════
+function checkInteract(){
+  if(S.dialog||S.puzzleOpen||S.transitioning) return;
+  const pts=[
+    {sc:0,x:320,y:148,fn:()=>{
+      if(S.solved){ dialog("Calendario","Este calendario ya reveló\nsu secreto. 📅","📅"); return; }
+      S.puzzleOpen=true; $('puzzleOverlay').style.display='flex';
+      setTimeout(()=>$('dateInput').focus(),300);
+    }},
+    {sc:1,x:420,y:200,fn:()=>{
+      if(S.ticketGot){ dialog("Boleto","Ya llevas el boleto.\n🎫 "+CFG.ticketDate,"🎫"); return; }
+      S.ticketGot=true; S.inv[1]=true; unlockItem(1,'🎫 Boleto desbloqueado!');
+      dialog("Narrador",`Encontraste un boleto en el suelo...\n\nFecha: ${CFG.ticketDate}\n\n"Ese día, alguien tomó un autobús\npara ir a verte."\n\n🎫 Boleto añadido al inventario.`,"Narrador");
+    }},
+    {sc:2,x:500,y:220,fn:()=>{
+      if(S.keyGot){ dialog("Llave","La llave corazón brilla\nen tu mano. 🗝️","🗝️"); return; }
+      if(!S.inv[0]||!S.inv[1]){ dialog("???","Sientes que algo te falta...\nNecesitas los otros objetos\nprimero.","???"); return; }
+      S.keyGot=true; S.inv[2]=true; unlockItem(2,'🗝️ Llave ❤ desbloqueada!');
+      dialog("Narrador","Una llave con forma de corazón\ncayó en tus manos.\n\nHay algo oculto en\neste sendero...\n\n🗝️ Llave ❤ añadida al inventario.","Narrador");
+    }},
+    {sc:2,x:332,y:340,fn:()=>{
+      if(!S.inv[0]||!S.inv[1]||!S.inv[2]){
+        dialog("Puerta","La puerta vibra...\n\n"+(S.inv[0]?"📅 ✅":"📅 ❌")+" Calendario\n"+(S.inv[1]?"🎫 ✅":"🎫 ❌")+" Boleto\n"+(S.inv[2]?"🗝️ ✅":"🗝️ ❌")+" Llave ❤","Puerta"); return;
+      }
+      dialog("Puerta","📅 Calendario...  ✅\n🎫 Boleto...      ✅\n🗝️ Llave ❤...    ✅\n\n*Los tres objetos encajan.*\n*La puerta se abre...* 💗","Puerta",()=>goScene(3,320));
+    }},
+    {sc:3,x:320,y:211,fn:()=>{
+      if(S.roomRevealed) return;
+      S.roomRevealed=true;
+      const m=$('bgMusic'); m.volume=0.6; m.play().catch(()=>{});
+      dialog("Narrador","*Algo se activa...*\n*La sala tiembla...*\n*Una luz cálida llena\nel cuarto...* 💗","Narrador",()=>launchRoom());
+    }},
+  ];
+  for(const p of pts){
+    if(p.sc!==S.scene) continue;
+    if(Math.abs(S.px-p.x)<54&&Math.abs(S.py-p.y)<54){ p.fn(); return; }
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// PUZZLE FECHA
+// ═══════════════════════════════════════════════════
+$('dateInput').addEventListener('input',function(){
+  let v=this.value.replace(/\D/g,'');
+  if(v.length>2) v=v.slice(0,2)+'/'+v.slice(2);
+  if(v.length>5) v=v.slice(0,5)+'/'+v.slice(5);
+  this.value=v.slice(0,10);
+});
+$('dateInput').addEventListener('keydown',e=>{ if(e.key==='Enter') $('puzzleBtn').click(); });
+$('puzzleBtn').addEventListener('click',()=>{
+  const val=$('dateInput').value.trim();
+  if(val===CFG.firstTalkDate){
+    S.solved=true; S.inv[0]=true;
+    $('puzzleOverlay').style.display='none'; S.puzzleOpen=false;
+    $('puzzleError').style.display='none';
+    unlockItem(0,'📅 Calendario desbloqueado!');
+    dialog("Narrador","¡Lo recordaste!\nLa fecha exacta...\n\n📅 Calendario añadido\nal inventario.","Narrador");
+  } else {
+    S.attempts++;
+    const err=$('puzzleError');
+    err.style.display='block';
+    err.style.animation='none'; void err.offsetWidth; err.style.animation='shake 0.3s ease';
+    $('puzzleAttempts').textContent='Intentos: '+S.attempts;
+    $('dateInput').value='';
+    if(S.attempts===3) err.textContent='💭 Pista: piensa en el momento que todo empezó...';
+  }
+});
+
+// ═══════════════════════════════════════════════════
+// UNLOCK NOTIFICATION
+// ═══════════════════════════════════════════════════
+function unlockItem(idx,msg){
+  $('inv'+idx).classList.add('unlocked');
+  const n=$('itemNotif'); n.textContent=msg; n.style.opacity='1';
+  setTimeout(()=>n.style.opacity='0',2500);
+}
+
+// ═══════════════════════════════════════════════════
+// ESCENA TRANSITION
+// ═══════════════════════════════════════════════════
+function goScene(n,nx){
+  S.transitioning=true; flash.style.opacity='1';
+  setTimeout(()=>{
+    S.scene=n; S.px=nx||320; S.py=270;
+    S.dialog=false; dlgBox.style.display='none';
+    flash.style.opacity='0'; S.transitioning=false;
+    showTitle(['PUEBLO DE LOS RECUERDOS','ESTACIÓN DE AUTOBUSES','SENDERO DEL CORAZÓN','???'][n]);
+  },160);
+}
+function showTitle(name){
+  const el=$('sceneTitle'), tx=$('sceneTitleText');
+  tx.textContent=name; el.style.opacity='1';
+  setTimeout(()=>el.style.opacity='0',1800);
+}
+
+// ═══════════════════════════════════════════════════
+// CRÉDITOS
+// ═══════════════════════════════════════════════════
+function showCredits(){ $('finalPopup').style.display='none'; $('creditsScreen').style.display='flex'; }
+$('playAgainBtn').addEventListener('click',()=>location.reload());
+
+// ═══════════════════════════════════════════════════
+// INPUT
+// ═══════════════════════════════════════════════════
+document.addEventListener('keydown',e=>{
+  S.keys[e.key]=true;
+  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
+  if(['z','Z',' ','Enter'].includes(e.key)){
+    if(S.dialog){ advDialog(); return; } checkInteract();
+  }
+});
+document.addEventListener('keyup',e=>delete S.keys[e.key]);
+
+// ═══════════════════════════════════════════════════
+// MÓVIL
+// ═══════════════════════════════════════════════════
+function setupMobile(){
+  if(!('ontouchstart' in window)) return;
+  $('mobileControls').style.display='flex';
+  const map={['dpad-up']:'ArrowUp',['dpad-down']:'ArrowDown',['dpad-left']:'ArrowLeft',['dpad-right']:'ArrowRight'};
+  Object.entries(map).forEach(([id,key])=>{
+    const el=$(id);
+    el.addEventListener('touchstart',e=>{ e.preventDefault(); S.keys[key]=true; el.classList.add('pressed'); },{passive:false});
+    el.addEventListener('touchend', e=>{ e.preventDefault(); delete S.keys[key]; el.classList.remove('pressed'); },{passive:false});
+  });
+  $('actionBtn').addEventListener('touchstart',e=>{
+    e.preventDefault();
+    if(S.dialog){ advDialog(); return; } checkInteract();
+  },{passive:false});
+}
+
+// ═══════════════════════════════════════════════════
+// LOOP
+// ═══════════════════════════════════════════════════
+const SCENES_FN = [scene0,scene1,scene2,scene3];
+const SCENE_NAMES = ['PUEBLO DE LOS RECUERDOS','ESTACIÓN DE AUTOBUSES','SENDERO DEL CORAZÓN','???'];
+const SPD=3;
+
+function loop(){
+  S.ticks++;
+  ctx.clearRect(0,0,640,390);
+  SCENES_FN[S.scene]();
+
+  // Movimiento
+  if(!S.dialog&&!S.puzzleOpen&&!S.transitioning){
+    if(S.keys['ArrowUp']   ||S.keys['w']||S.keys['W']){S.py-=SPD;S.facing='up';   S.moving=true;}
+    else if(S.keys['ArrowDown'] ||S.keys['s']||S.keys['S']){S.py+=SPD;S.facing='down'; S.moving=true;}
+    else S.moving=false;
+    if(S.keys['ArrowLeft'] ||S.keys['a']||S.keys['A']){S.px-=SPD;S.facing='left'; S.moving=true;}
+    else if(S.keys['ArrowRight']||S.keys['d']||S.keys['D']){S.px+=SPD;S.facing='right';S.moving=true;}
+    S.px=Math.max(20,Math.min(620,S.px)); S.py=Math.max(50,Math.min(375,S.py));
+    if(++S.wTimer>5){S.wFrame=(S.wFrame+1)%12;S.wTimer=0;}
+    // salidas
+    if(S.scene===0&&S.solved&&S.px>615) goScene(1,30);
+    if(S.scene===1&&S.px<20) goScene(0,600);
+    if(S.scene===1&&S.ticketGot&&S.px>615) goScene(2,30);
+    if(S.scene===2&&S.px<20) goScene(1,600);
+  }
+
+  // Dibujar player
+  const wf=S.moving&&S.wFrame>6?1:0;
+  drawChar(S.px,S.py,'#f5deb3','#2a1a0a',true,S.facing,wf,2);
+
+  // Barra inferior
+  ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(0,374,640,16);
+  ctx.fillStyle='#777'; ctx.font='5px "Press Start 2P",monospace';
+  ctx.fillText(SCENE_NAMES[S.scene],10,386);
+  ctx.fillStyle='#555'; ctx.fillText('Z=INTERACTUAR',500,386);
+
+  // Room animation
+  if(S.roomRevealed && $('romanticRoom').style.display==='block') tickRoom();
+
+  requestAnimationFrame(loop);
+}
+
+// ═══════════════════════════════════════════════════
+// START
+// ═══════════════════════════════════════════════════
+function setupScale(){
+  const scaleX = window.innerWidth / 640;
+  // total height = 32(hud) + 390(canvas) + 88(dialog) = 510
+  const totalH = 510;
+  const scaleY = window.innerHeight / totalH;
+  const scale  = Math.min(scaleX, scaleY, 2.2); // max 2.2x
+  document.getElementById('gameWrapper').style.transform = 'scale('+scale+')';
+}
+setupScale();
+window.addEventListener('resize', setupScale);
+
+$('startBtn').addEventListener('click',()=>{
+
+  $('titleScreen').style.display='none';
+  S.px=320; S.py=270; setupMobile();
+  showTitle(SCENE_NAMES[0]);
+  setTimeout(()=>{
+    dialog("Narrador","En este pequeño mundo...\nviven los recuerdos de\ndos personas.\n\nEncuentra los tres objetos\nque cuentan vuestra historia. 💕","Narrador");
+  },700);
+  loop();
+});
+</script>
+</body>
+</html>
