@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tu segundo regalo 💕</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: #0a0010;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Press Start 2P', monospace;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ── ESTRELLAS ── */
+#stars { position:fixed; inset:0; pointer-events:none; z-index:0; }
+
+/* ── TÍTULO ── */
+#title {
+  position: relative;
+  z-index: 10;
+  text-align: center;
+  margin-bottom: 20px;
+}
+#title h1 {
+  color: #fff;
+  font-size: 13px;
+  line-height: 2;
+  text-shadow: 0 0 20px #ff6b9d, 0 0 40px #ff6b9d;
+  animation: titlePulse 2s ease-in-out infinite alternate;
+}
+#title p {
+  color: #ff6b9d;
+  font-size: 7px;
+  margin-top: 6px;
+  letter-spacing: 1px;
+}
+@keyframes titlePulse {
+  from { text-shadow: 0 0 10px #ff6b9d; }
+  to   { text-shadow: 0 0 30px #ff6b9d, 0 0 60px #ff6b9d; }
+}
+
+/* ── CORAZÓN GRANDE ── */
+#heartScene {
+  position: relative;
+  z-index: 10;
+  width: 380px;
+  height: 380px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* SVG corazón de fondo */
+#heartSVG {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* ── CONTADOR dentro del corazón ── */
+#countdown {
+  position: relative;
+  z-index: 15;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+#countdown .label-top {
+  color: #ffccdd;
+  font-size: 6px;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+#countdown .label-bot {
+  color: #ffccdd;
+  font-size: 5px;
+  margin-top: 4px;
+  letter-spacing: 1px;
+}
+#timeBoxes {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.tbox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.tbox .num {
+  background: rgba(0,0,0,0.6);
+  border: 2px solid #ff6b9d;
+  color: #fff;
+  font-size: 14px;
+  width: 54px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Press Start 2P', monospace;
+  text-shadow: 0 0 8px #ff6b9d;
+  transition: transform 0.1s;
+}
+.tbox .num.tick { transform: scale(1.08); }
+.tbox .unit {
+  color: #ff6b9d;
+  font-size: 5px;
+}
+.tsep {
+  color: #ff6b9d;
+  font-size: 18px;
+  margin-bottom: 14px;
+  animation: blink 1s infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
+
+/* ── FLORES alrededor del corazón ── */
+.flower {
+  position: absolute;
+  pointer-events: none;
+  animation: floatFlower ease-in-out infinite;
+}
+@keyframes floatFlower {
+  0%,100% { transform: translateY(0) rotate(var(--rot)); }
+  50%      { transform: translateY(-8px) rotate(var(--rot)); }
+}
+
+/* ── PÉTALOS CAYENDO ── */
+.petal {
+  position: fixed;
+  pointer-events: none;
+  z-index: 5;
+  animation: fallPetal linear infinite;
+  opacity: 0.7;
+}
+@keyframes fallPetal {
+  0%   { transform: translateY(-20px) rotate(0deg) translateX(0); opacity: 0.8; }
+  100% { transform: translateY(110vh) rotate(720deg) translateX(var(--dx)); opacity: 0; }
+}
+
+/* ── MENSAJE FINAL ── */
+#message {
+  position: relative;
+  z-index: 10;
+  text-align: center;
+  margin-top: 16px;
+  color: #ffccdd;
+  font-size: 6px;
+  line-height: 2.4;
+  max-width: 360px;
+}
+#message .heart-anim {
+  display: inline-block;
+  font-size: 14px;
+  animation: heartbeat 1.2s ease-in-out infinite;
+}
+@keyframes heartbeat {
+  0%,100% { transform: scale(1); }
+  14%     { transform: scale(1.3); }
+  28%     { transform: scale(1); }
+  42%     { transform: scale(1.2); }
+  70%     { transform: scale(1); }
+}
+
+/* ── PARTÍCULAS DE CORAZÓN ── */
+.hpart {
+  position: fixed;
+  pointer-events: none;
+  z-index: 6;
+  animation: riseHeart linear forwards;
+  opacity: 0;
+}
+@keyframes riseHeart {
+  0%   { transform: translateY(0) scale(0.5); opacity: 1; }
+  100% { transform: translateY(-180px) scale(1.2); opacity: 0; }
+}
+</style>
+</head>
+<body>
+
+<canvas id="stars" width="800" height="800"></canvas>
+
+<div id="title">
+  <h1>♥ TU SEGUNDO<br>REGALO ♥</h1>
+  <p>cuenta regresiva para nuestro 1er año</p>
+</div>
+
+<!-- ESCENA PRINCIPAL: corazón + flores + contador -->
+<div id="heartScene">
+
+  <!-- SVG corazón grande con glow animado -->
+  <svg id="heartSVG" viewBox="0 0 380 380" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <filter id="glow">
+        <feGaussianBlur stdDeviation="6" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+      <filter id="glowStrong">
+        <feGaussianBlur stdDeviation="12" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>
+    <!-- Sombra/glow exterior -->
+    <path id="heartGlow"
+      d="M190,310 C190,310 60,230 60,145 C60,100 90,72 130,72 C155,72 175,85 190,100 C205,85 225,72 250,72 C290,72 320,100 320,145 C320,230 190,310 190,310 Z"
+      fill="#ff1a5e" opacity="0.25" filter="url(#glowStrong)"
+    />
+    <!-- Corazón principal -->
+    <path id="heartMain"
+      d="M190,310 C190,310 60,230 60,145 C60,100 90,72 130,72 C155,72 175,85 190,100 C205,85 225,72 250,72 C290,72 320,100 320,145 C320,230 190,310 190,310 Z"
+      fill="#c0143c" filter="url(#glow)"
+    />
+    <!-- Highlight superior izq -->
+    <path
+      d="M130,85 C112,85 98,98 95,115 C110,95 128,90 148,92 C142,88 136,85 130,85 Z"
+      fill="#ff6688" opacity="0.5"
+    />
+    <!-- Brillo pequeño -->
+    <ellipse cx="145" cy="105" rx="14" ry="8" fill="#ff99aa" opacity="0.35" transform="rotate(-30,145,105)"/>
+    <!-- Pixel art details — líneas de pixel sobre el corazón -->
+    <rect x="100" y="140" width="6" height="6" fill="#ff2255" opacity="0.4"/>
+    <rect x="112" y="128" width="6" height="6" fill="#ff2255" opacity="0.3"/>
+    <rect x="260" y="140" width="6" height="6" fill="#ff2255" opacity="0.4"/>
+    <rect x="248" y="128" width="6" height="6" fill="#ff2255" opacity="0.3"/>
+  </svg>
+
+  <!-- Flores alrededor (generadas por JS) -->
+  <div id="flowersContainer"></div>
+
+  <!-- Contador centrado dentro del corazón -->
+  <div id="countdown">
+    <div class="label-top">FALTAN</div>
+    <div id="timeBoxes">
+      <div class="tbox">
+        <div class="num" id="cd-days">000</div>
+        <div class="unit">DÍAS</div>
+      </div>
+      <div class="tsep">:</div>
+      <div class="tbox">
+        <div class="num" id="cd-hours">00</div>
+        <div class="unit">HORAS</div>
+      </div>
+      <div class="tsep">:</div>
+      <div class="tbox">
+        <div class="num" id="cd-mins">00</div>
+        <div class="unit">MINS</div>
+      </div>
+      <div class="tsep">:</div>
+      <div class="tbox">
+        <div class="num" id="cd-secs">00</div>
+        <div class="unit">SEGS</div>
+      </div>
+    </div>
+    <div class="label-bot">para nuestro 1 año ♥</div>
+  </div>
+
+</div>
+
+<!-- Mensaje inferior -->
+<div id="message">
+  <span class="heart-anim">♥</span>
+  27 de octubre de 2025<br>
+  ese día lo celebramos juntos.<br>
+  te amo, Solecín.
+  <span class="heart-anim">♥</span>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+//  ESTRELLITAS DE FONDO
+// ═══════════════════════════════════════
+const sc = document.getElementById('stars');
+sc.width  = window.innerWidth;
+sc.height = window.innerHeight;
+const stx = sc.getContext('2d');
+const stars = Array.from({length:80}, ()=>({
+  x: Math.random()*sc.width,
+  y: Math.random()*sc.height,
+  s: Math.random()<0.3?2:1,
+  t: Math.random()*Math.PI*2,
+  spd: 0.02+Math.random()*0.03
+}));
+function drawStars(){
+  stx.clearRect(0,0,sc.width,sc.height);
+  stx.fillStyle='#000'; stx.fillRect(0,0,sc.width,sc.height);
+  stars.forEach(s=>{
+    s.t+=s.spd;
+    stx.globalAlpha=Math.sin(s.t)*0.4+0.6;
+    stx.fillStyle='#fff';
+    stx.fillRect(s.x, s.y, s.s, s.s);
+  });
+  stx.globalAlpha=1;
+  requestAnimationFrame(drawStars);
+}
+drawStars();
+window.addEventListener('resize',()=>{
+  sc.width=window.innerWidth; sc.height=window.innerHeight;
+});
+
+// ═══════════════════════════════════════
+//  ANIMACIÓN DEL CORAZÓN SVG
+// ═══════════════════════════════════════
+const heartMain = document.getElementById('heartMain');
+const heartGlow = document.getElementById('heartGlow');
+let hbTick = 0;
+function animateHeart(){
+  hbTick += 0.03;
+  const pulse = Math.sin(hbTick)*0.04 + 0.97;
+  const gAmt  = Math.sin(hbTick)*0.12 + 0.22;
+  heartMain.setAttribute('transform', `translate(190,190) scale(${pulse}) translate(-190,-190)`);
+  heartGlow.setAttribute('opacity', gAmt);
+  requestAnimationFrame(animateHeart);
+}
+animateHeart();
+
+// ═══════════════════════════════════════
+//  FLORES ALREDEDOR DEL CORAZÓN
+// ═══════════════════════════════════════
+const container = document.getElementById('flowersContainer');
+const flowerData = [
+  // [ángulo en deg, distancia del centro, tipo, tamaño, delay]
+  [  0,  168, 'lily',  22, 0   ],
+  [ 30,  162, 'rose',  20, 0.4 ],
+  [ 60,  155, 'lily',  18, 0.8 ],
+  [ 90,  168, 'daisy', 22, 0.3 ],
+  [120,  162, 'rose',  20, 0.6 ],
+  [150,  155, 'lily',  18, 1.0 ],
+  [180,  168, 'daisy', 22, 0.2 ],
+  [210,  162, 'rose',  20, 0.7 ],
+  [240,  155, 'lily',  18, 0.5 ],
+  [270,  168, 'daisy', 22, 0.1 ],
+  [300,  162, 'rose',  20, 0.9 ],
+  [330,  155, 'lily',  18, 1.2 ],
+  // Segunda fila exterior
+  [ 15,  195, 'rose',  14, 0.3 ],
+  [ 75,  190, 'lily',  14, 0.8 ],
+  [135,  195, 'daisy', 14, 0.2 ],
+  [195,  190, 'rose',  14, 0.6 ],
+  [255,  195, 'lily',  14, 1.0 ],
+  [315,  190, 'daisy', 14, 0.4 ],
+];
+
+function makeSVGFlower(type, size){
+  const s = document.createElementNS('http://www.w3.org/2000/svg','svg');
+  s.setAttribute('viewBox','-16 -16 32 32');
+  s.setAttribute('width', size);
+  s.setAttribute('height', size);
+
+  if(type === 'lily'){
+    // Lirio blanco/rosa con centro amarillo
+    const petals = [0,60,120,180,240,300];
+    petals.forEach(a=>{
+      const r = a*Math.PI/180;
+      const p = document.createElementNS('http://www.w3.org/2000/svg','ellipse');
+      p.setAttribute('cx', Math.cos(r)*7);
+      p.setAttribute('cy', Math.sin(r)*7);
+      p.setAttribute('rx','4'); p.setAttribute('ry','2.5');
+      p.setAttribute('transform',`rotate(${a},${Math.cos(r)*7},${Math.sin(r)*7})`);
+      p.setAttribute('fill', a%120===0?'#fff':'#ffd0e8');
+      p.setAttribute('opacity','0.95');
+      s.appendChild(p);
+    });
+    const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c.setAttribute('r','3'); c.setAttribute('fill','#ffd700');
+    s.appendChild(c);
+    // tallo
+    const st = document.createElementNS('http://www.w3.org/2000/svg','line');
+    st.setAttribute('x1','0');st.setAttribute('y1','3');
+    st.setAttribute('x2','0');st.setAttribute('y2','13');
+    st.setAttribute('stroke','#2d8a10');st.setAttribute('stroke-width','2');
+    s.appendChild(st);
+  }
+
+  else if(type === 'rose'){
+    // Rosa roja
+    const layers = [[8,'#c0143c'],[6,'#e01a50'],[4,'#ff3366'],[2,'#ff6688']];
+    layers.forEach(([r,col])=>{
+      const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      c.setAttribute('r',r); c.setAttribute('fill',col);
+      s.appendChild(c);
+    });
+    // Hojitas verdes
+    [-30,30].forEach(a=>{
+      const l = document.createElementNS('http://www.w3.org/2000/svg','ellipse');
+      l.setAttribute('cx','0'); l.setAttribute('cy','11');
+      l.setAttribute('rx','5'); l.setAttribute('ry','3');
+      l.setAttribute('fill','#2d6a1a');
+      l.setAttribute('transform',`rotate(${a},0,8)`);
+      s.appendChild(l);
+    });
+    // tallo
+    const st = document.createElementNS('http://www.w3.org/2000/svg','line');
+    st.setAttribute('x1','0');st.setAttribute('y1','8');
+    st.setAttribute('x2','0');st.setAttribute('y2','15');
+    st.setAttribute('stroke','#2d6a1a');st.setAttribute('stroke-width','2');
+    s.appendChild(st);
+  }
+
+  else if(type === 'daisy'){
+    // Margarita blanca
+    const petals = [0,40,80,120,160,200,240,280,320];
+    petals.forEach(a=>{
+      const r=a*Math.PI/180;
+      const p = document.createElementNS('http://www.w3.org/2000/svg','ellipse');
+      p.setAttribute('cx', Math.cos(r)*6);
+      p.setAttribute('cy', Math.sin(r)*6);
+      p.setAttribute('rx','3'); p.setAttribute('ry','2');
+      p.setAttribute('transform',`rotate(${a},${Math.cos(r)*6},${Math.sin(r)*6})`);
+      p.setAttribute('fill','#fff');
+      p.setAttribute('opacity','0.9');
+      s.appendChild(p);
+    });
+    const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c.setAttribute('r','3'); c.setAttribute('fill','#ffd700');
+    s.appendChild(c);
+    const st = document.createElementNS('http://www.w3.org/2000/svg','line');
+    st.setAttribute('x1','0');st.setAttribute('y1','3');
+    st.setAttribute('x2','0');st.setAttribute('y2','13');
+    st.setAttribute('stroke','#2d8a10');st.setAttribute('stroke-width','2');
+    s.appendChild(st);
+  }
+
+  return s;
+}
+
+flowerData.forEach(([angle, dist, type, size, delay])=>{
+  const rad = (angle - 90) * Math.PI / 180;
+  const cx  = 190 + dist * Math.cos(rad);
+  const cy  = 190 + dist * Math.sin(rad);
+
+  const wrap = document.createElement('div');
+  wrap.className = 'flower';
+  wrap.style.cssText = `
+    left:${cx}px; top:${cy}px;
+    transform: translate(-50%,-50%) rotate(${angle}deg);
+    --rot: ${angle}deg;
+    animation-duration: ${2.5+Math.random()*2}s;
+    animation-delay: -${delay}s;
+    position:absolute;
+  `;
+  const svg = makeSVGFlower(type, size);
+  wrap.appendChild(svg);
+  container.appendChild(wrap);
+});
+
+// ═══════════════════════════════════════
+//  PÉTALOS CAYENDO
+// ═══════════════════════════════════════
+function spawnPetal(){
+  const p = document.createElement('div');
+  p.className = 'petal';
+  const emojis = ['🌸','🌹','🌺','🌷','💮'];
+  p.textContent = emojis[Math.floor(Math.random()*emojis.length)];
+  p.style.cssText = `
+    left:${Math.random()*100}vw;
+    top:-30px;
+    font-size:${12+Math.random()*14}px;
+    --dx:${(Math.random()-0.5)*120}px;
+    animation-duration:${5+Math.random()*6}s;
+    animation-delay:${Math.random()*2}s;
+  `;
+  document.body.appendChild(p);
+  setTimeout(()=>p.remove(), 12000);
+}
+setInterval(spawnPetal, 600);
+
+// ═══════════════════════════════════════
+//  CONTADOR REGRESIVO → 27 octubre 2025
+// ═══════════════════════════════════════
+const TARGET = new Date('2025-10-27T00:00:00');
+
+const elDays  = document.getElementById('cd-days');
+const elHours = document.getElementById('cd-hours');
+const elMins  = document.getElementById('cd-mins');
+const elSecs  = document.getElementById('cd-secs');
+
+function pad(n, len){ return String(n).padStart(len||2,'0'); }
+
+function flashTick(el){
+  el.classList.add('tick');
+  setTimeout(()=>el.classList.remove('tick'), 120);
+}
+
+let prevSecs = -1;
+function updateCountdown(){
+  const now  = new Date();
+  const diff = TARGET - now;
+
+  if(diff <= 0){
+    // Ya llegó el aniversario 🎉
+    elDays.textContent  = '000';
+    elHours.textContent = '00';
+    elMins.textContent  = '00';
+    elSecs.textContent  = '00';
+    document.querySelector('#countdown .label-top').textContent = '¡HOY ES';
+    document.querySelector('#countdown .label-bot').textContent = 'NUESTRO 1 AÑO! ♥';
+    return;
+  }
+
+  const days  = Math.floor(diff / (1000*60*60*24));
+  const hours = Math.floor((diff % (1000*60*60*24)) / (1000*60*60));
+  const mins  = Math.floor((diff % (1000*60*60)) / (1000*60));
+  const secs  = Math.floor((diff % (1000*60)) / 1000);
+
+  elDays.textContent  = pad(days, 3);
+  elHours.textContent = pad(hours);
+  elMins.textContent  = pad(mins);
+
+  if(secs !== prevSecs){
+    elSecs.textContent = pad(secs);
+    flashTick(elSecs);
+    if(secs === 59) flashTick(elMins);
+    prevSecs = secs;
+  }
+}
+updateCountdown();
+setInterval(updateCountdown, 500);
+
+// ═══════════════════════════════════════
+//  PARTÍCULAS DE CORAZÓN al cargar
+// ═══════════════════════════════════════
+function spawnHeartParticle(){
+  const h = document.createElement('div');
+  h.className = 'hpart';
+  h.textContent = ['♥','💕','💖','💗'][Math.floor(Math.random()*4)];
+  const x = 30 + Math.random()*40; // % desde izq
+  h.style.cssText = `
+    left:${x}vw; bottom:${15+Math.random()*20}vh;
+    font-size:${10+Math.random()*16}px;
+    color:#ff6b9d;
+    animation-duration:${2+Math.random()*2}s;
+    animation-delay:${Math.random()}s;
+  `;
+  document.body.appendChild(h);
+  setTimeout(()=>h.remove(), 4000);
+}
+setInterval(spawnHeartParticle, 800);
+</script>
+</body>
+</html>
